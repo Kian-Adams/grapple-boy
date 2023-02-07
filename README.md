@@ -1,2 +1,2 @@
 # grapple-guy
-A game created as a part of the MATES Senior Capstone course for Computer Science under Dr. Bixler.
+_Grapple Guy_ is a platforming action title being developed for the Bandai WonderSwan as a part of the Senior Capstone Project course at the Marine Academy of Technology and Environmental Science. The game is built using the _C_ programming language with the ability to port the game to the system using the WonderWitch Developer Kit released by Bandai. The game follows the titular protagonist using his grappling hook to swing around and traverse levels.
