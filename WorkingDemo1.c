@@ -198,3 +198,4 @@ void main(int argc, char *argv[]) {
 	} while((key_data & KEY_START) == 0);
 	return;
 }
+
