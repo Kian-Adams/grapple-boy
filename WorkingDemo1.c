@@ -72,7 +72,7 @@ void groundinit(){
     subTextureSet(SCREEN2 ,0 ,10,SCREEN_CHAR_WIDTH, 8                  ,0,2);
 }
 void main(int argc, char *argv[]) {
-	int i, j, k, iJmp, iChn;
+	int i, j, k, yPress, inJump, lMomentum, rMomentum, lunge, iJmp, iChn;
 	BYTE x, y;
 	WORD key_data;
 	init_sprite();
@@ -121,11 +121,17 @@ void main(int argc, char *argv[]) {
 
 	x = 0;
 	y = 0;
-	iJmp=0;	
-	iChn=0;
-	i=0;
-	j=0;
-	k=0;
+	iJmp=0;	/* max jump height???? */
+	iChn=0; /* If iChn == 0, then player is in Freefall. */
+	i=0; /* Variable for alternating between walking sprites. */
+	j=0; /* Max Jump height. */
+	k=0; /* Jump units. The longer A is held, the more k is incremented. Max Jump units is 7. */
+	yPress=0;
+	inJump=0;
+	lMomentum=0;
+	rMomentum=0;
+	lunge=1;
+
 	do {
 		BYTE x2, y2;
 
@@ -138,16 +144,16 @@ void main(int argc, char *argv[]) {
 		if(iJmp==JMP_ED)
 		{	
 			iChn=screen_get_char1(SCREEN1 , x/8 , (y+16)/8) & CFM_FONT;
-			if((iChn==0)&(k==0))
+			if((iChn==0)&(k==0)) /* If player is off the ground and no longer rising from a Jump, gravity is in effect */
 			{
 				y=y+2;
 			}else{
 			    if (key_data & KEY_A){
 					if (k<8){
-						j=2;
-						j = j+(j/2);
+						j=3;
 						k++;
 						iJmp = j;
+						inJump=1;
 					}else{
 						k=0;
 					}
@@ -157,24 +163,41 @@ void main(int argc, char *argv[]) {
 				}else{
 					j=0;
 					k=0;
+					if (iChn != 0){
+						inJump=0;
+						lMomentum=0;
+						rMomentum=0;
+						lunge=1;
+					}
 				}
 			}
 		}else{		
 			iJmp--;		
 			if (y>0){
-			y=y-2;
-			}  
+				y=y-2;
+			}
 		}
+		if (KEY_Y1 || KEY_Y2 || KEY_Y3 || KEY_Y4){
+			yPress=1;
+		}
+
 		if (key_data & KEY_LEFT1){
 			if ((i%10)==0){
 				font_set_colordata(4, 16, bmp_Grapple_Boy4colorL);
 			}else{
 				font_set_colordata(4, 16, bmp_Grapple_Boy4colorWalkL);
 			}
+			x--;
 			if (key_data & KEY_B){
-				x = x - 3;
+				rMomentum=0;
+				if (((iChn != 0) || (lMomentum==1))){
+					x = x - 2;
+					lMomentum=1;
+				}
 			}else{
-				x--;
+				if ((iChn == 0) & (lMomentum==1)){
+					x = x - 2;
+				}
 			}
 		}
 		if (key_data & KEY_RIGHT1){
@@ -183,12 +206,46 @@ void main(int argc, char *argv[]) {
 			}else{
 				font_set_colordata(4, 16, bmp_Grapple_Boy4colorWalk);
 			}
+			x++;
 			if (key_data & KEY_B){
-				x = x + 3;
+				lMomentum=0;
+				if ((iChn != 0) || (rMomentum==1)){
+					x = x + 2;
+					rMomentum=1;
+				}
 			}else{
-				x++;
+				if ((iChn == 0) & (rMomentum==1)){
+					x = x + 2;
+				}
 			}
 		}
+		/* High-Frequency Sword attacks */
+		if (key_data & KEY_B){
+			if ((lunge == 1) & (yPress == 1)) { 
+				lunge=0;
+				if (key_data & KEY_Y1) {
+					y = y - 27;
+				}
+				else if (key_data & KEY_Y2) {
+					font_set_colordata(4, 16, bmp_Grapple_Boy4colorWalk);
+					x = x + 25;
+					if (iChn==0) {
+						y = y - 2;
+					}
+				}
+				else if (key_data & KEY_Y3) {
+					y = y + 27;
+				}
+				else if (key_data & KEY_Y4) {
+					font_set_colordata(4, 16, bmp_Grapple_Boy4colorWalkL);
+					x = x - 25;
+					if (iChn==0) {
+						y = y - 2;
+					}
+				}
+			}
+		}
+		yPress=0;
 		x2 = x + 8;
 		y2 = y + 8;
 		sprite_set_location(0, x, y);
@@ -198,4 +255,3 @@ void main(int argc, char *argv[]) {
 	} while((key_data & KEY_START) == 0);
 	return;
 }
-
