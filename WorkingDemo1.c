@@ -7,8 +7,7 @@
 #include "Grapple_Boy4color-Walk.h"
 #include "Grapple_Boy4color-L.h"
 #include "Grapple_Boy4color-WalkL.h"
-#define JMP_ST 22
-#define JMP_ED 0
+#include "LanceGuardF1_3.h"
 void init_sprite()
 {
     if (wwc_get_hardarch() == HARDARCH_WSC) {
@@ -32,7 +31,7 @@ void init_sprite()
 	sprite_set_char(1, 1);
     }
 }
-void clear_screen(BYTE screen, BOOL stripe)
+/* void clear_screen(BYTE screen, BOOL stripe)
 {
     int i;
 
@@ -40,7 +39,7 @@ void clear_screen(BYTE screen, BOOL stripe)
 	screen_fill_char(screen, i, 0, 1, 32,
 	    0 + (stripe ? (1 - i << CFSFT_PALETTE) : 0));
     }
-}
+} */
 void subPlatformSet(int iScr ,int iX ,int iY ,int iWmax ,int iHmax ,int iPal,int iChn)
 {
     int iW,iH;
@@ -71,9 +70,86 @@ void groundinit(){
     subPlatformSet(SCREEN1 ,0 ,10,SCREEN_CHAR_WIDTH, 8                  ,0,2);
     subTextureSet(SCREEN2 ,0 ,10,SCREEN_CHAR_WIDTH, 8                  ,0,2);
 }
+#include "title(new).fbm"
+#define FONT_SPACE 0
+#define FONT_BAR   (FONT_SPACE + 1)
+#define FONT_BALL  (FONT_BAR   + 3)
+#define FONT_TITLE (FONT_BALL  + 2)
+#define FONT_FREE  (FONT_TITLE + 171)
+/*----------------------------------------------------------------------
+ * MENU
+ *----------------------------------------------------------------------
+ */
+#define MENU_EXIT   0
+#define MENU_START  1
+#define MENU_OPTION 2
+
+#define TITLE_X 4
+#define TITLE_Y 4
+
+void draw_title(BYTE screen)
+{
+    WORD font = FONT_TITLE;
+    int dx;
+    int dy;
+
+    for (dy = 0; dy < title_height; dy++) {
+	for (dx = 0; dx < title_width; dx++, font++) {
+	    screen_fill_char(screen, TITLE_X + dx, TITLE_Y + dy, 1, 1, font);
+	}
+    }
+}
+
+void draw_string(BYTE screen, BYTE x, BYTE y, WORD font, unsigned char *s)
+{
+    BYTE data[8];
+    WORD code;
+
+    while ((code = *s++) != 0x00) {
+	text_get_fontdata(code, data);
+	font_set_monodata(font, 1, data);
+	screen_set_char(screen, x++, y, 1, 1, &font);
+	font++;
+    }
+}
+
+void clear_screen(BYTE screen, BOOL stripe)
+{
+    int i;
+
+    for (i = 0; i < 32; i++) {
+	screen_fill_char(screen, i, 0, 1, 32,
+	    FONT_SPACE + (stripe ? (1 - i % 2 << CFSFT_PALETTE) : 0));
+    }
+}
+int pause()
+{
+    clear_screen(SCREEN2, FALSE);
+    draw_string(SCREEN2, 11, 7, FONT_FREE, "PAUSE");
+    draw_string(SCREEN2, 7, 9, FONT_FREE + 5, "START: Exit");
+    draw_string(SCREEN2, 7, 10, FONT_FREE + 16, "OTHER: Restart");
+    display_control(DCM_SCR1 | DCM_SCR2 | DCM_SCR2_WIN_INSIDE | DCM_SPR);
+    switch (key_wait()) {
+    	case KEY_START:
+			return 0;
+		/* case KEY_Y4
+			return 2; */
+    	default:
+			return 1;
+    }
+}
+
+
+/* void pause(){
+	
+}
+
+*/
+
 void main(int argc, char *argv[]) {
-	int i, j, k, yPress, inJump, lMomentum, rMomentum, lunge, iJmp, iChn;
+	int i, sprite_cycle, direction, jump_height_potential, y_press, l_momentum, r_momentum, slash_anim, lunge, lunge_lag, lunge_anim, guard_anim, iJmp, iChn;
 	BYTE x, y;
+	BYTE loop;
 	WORD key_data;
 	init_sprite();
 
@@ -119,139 +195,244 @@ void main(int argc, char *argv[]) {
 		sprite_set_char(i, chr);
 	}
 
-	x = 0;
-	y = 0;
-	iJmp=0;	/* max jump height???? */
-	iChn=0; /* If iChn == 0, then player is in Freefall. */
-	i=0; /* Variable for alternating between walking sprites. */
-	j=0; /* Max Jump height. */
-	k=0; /* Jump units. The longer A is held, the more k is incremented. Max Jump units is 7. */
-	yPress=0;
-	inJump=0;
-	lMomentum=0;
-	rMomentum=0;
-	lunge=1;
+	x = 0; /* Player x position. Incrementing x results in moving Right whilst decrementing x results in moving Left. */
+	y = 0; /* Player y position. Incrementing y results in moving Down whilst decrementing y results in moving Up. */
+	sprite_cycle = 0; /* Sprite cycle. Used in alternating sprites per a certain amount of frames. */
+	direction = 0; /* Direction the player is facing. 0 = Left, and 1 = Right. */
+	iJmp = 0;	/* Jump counter. */
+	iChn = 0; /* If iChn == 0, then player is in Freefall. */
+	i = 0; /* Variable for incrementing the sprite cycle. */
+	jump_height_potential = 0; /* Jump height potential. The longer A is held, the more k is incremented. Max Jump height is 8 units. */
+	y_press = 0; /* Tracks whether the player is pressing the Y button. 0 = No and 1 = Yes */
+	l_momentum = 0; /* Left momentum */
+	r_momentum = 0; /* Right momentum */
+	slash_anim = 0; /* Tracks the progress of the Sword Slash sprite animation */
+	lunge = 1; /* Lunge counter. */
+	lunge_lag = 0; /* Tracks how much the player must wait to regain lunge. */
+	lunge_anim = 0; /* Tracks the progress of the Sword Lunge sprite animation */
+	guard_anim = 0; /* Tracks the progress of the Lance Guard sprite animation */
 
 	do {
-		BYTE x2, y2;
+		BYTE x2, y2, x3, y3;
+		BYTE loop = TRUE;
+		key_data = key_press_check();
 
 		sys_wait(1);
 		i++;
-		if (i == 3){
+		if (i == 11){ /* The max of i is 10, which is reached after 10 frames. */
 			i = 0;
 		}
-		key_data = key_press_check();
-		if(iJmp==JMP_ED)
-		{	
+		if (i == 0) { /* The sprite cycle increments every 10 frames. */
+			sprite_cycle++;
+		}
+		if(iJmp==0){	
 			iChn=screen_get_char1(SCREEN1 , x/8 , (y+16)/8) & CFM_FONT;
-			if((iChn==0)&(k==0)) /* If player is off the ground and no longer rising from a Jump, gravity is in effect */
+			if((iChn==0)&(jump_height_potential==0)) /* If player is off the ground and no longer rising from a Jump, gravity is in effect */
 			{
 				y=y+2;
 			}else{
-			    if (key_data & KEY_A){
-					if (k<8){
-						j=3;
-						k++;
-						iJmp = j;
-						inJump=1;
-					}else{
-						k=0;
+			    if (key_data & KEY_A){ /* If the player jumps, they use the walk sprite. */
+					if (direction == 0){
+						font_set_colordata(4, 16, bmp_Grapple_Boy4colorWalkL);
 					}
-					if (j > JMP_ST){
-						j = JMP_ST;
+					else{
+						font_set_colordata(4, 16, bmp_Grapple_Boy4colorWalk);
 					}
-				}else{
-					j=0;
-					k=0;
+					if (jump_height_potential<8){
+						jump_height_potential++;
+						iJmp = 3;
+					}
+					else{
+						jump_height_potential=0;
+					}
+				}
+				else{
+					jump_height_potential=0;
 					if (iChn != 0){
-						inJump=0;
-						lMomentum=0;
-						rMomentum=0;
+						l_momentum=0;
+						r_momentum=0;
 						lunge=1;
 					}
 				}
 			}
-		}else{		
+		}
+		else{		
 			iJmp--;		
 			if (y>0){
 				y=y-2;
 			}
 		}
+		/* Check whether a Y D-Pad button is pressed. */
 		if (KEY_Y1 || KEY_Y2 || KEY_Y3 || KEY_Y4){
-			yPress=1;
+			y_press=1;
+		}
+		/* Decrements lunge_lag every frame. */
+		if (lunge_lag > 0) {
+			lunge_lag--;
+		}
+		/* If player is not moving laterally on the ground, they use the still sprite. */
+		if (((key_data & KEY_LEFT1) != TRUE) & ((key_data & KEY_RIGHT1) != TRUE) & (iChn != 0)){
+			if (direction == 0){
+				font_set_colordata(4, 16, bmp_Grapple_Boy4colorL);
+			}
+			else{
+				font_set_colordata(4, 16, bmp_Grapple_Boy4color);
+			}	
 		}
 
+		/* Left Movement */
 		if (key_data & KEY_LEFT1){
-			if ((i%10)==0){
-				font_set_colordata(4, 16, bmp_Grapple_Boy4colorL);
-			}else{
-				font_set_colordata(4, 16, bmp_Grapple_Boy4colorWalkL);
-			}
+			direction = 0; /* Refers to player facing Left. Note: Player starts the game facing Left as well. */
 			x--;
-			if (key_data & KEY_B){
-				rMomentum=0;
-				if (((iChn != 0) || (lMomentum==1))){
-					x = x - 2;
-					lMomentum=1;
+			if (key_data & KEY_B){ /* If player is in Run on ground or in fast movement in Freefall. */
+				r_momentum=0;
+				if (iChn!=0){
+					if ((sprite_cycle%2)==0){ /* Every two sprite cycles, the sprite alternates. */
+						font_set_colordata(4, 16, bmp_Grapple_Boy4colorL);
+					}
+					else{
+						font_set_colordata(4, 16, bmp_Grapple_Boy4colorWalkL);
+					}
 				}
-			}else{
-				if ((iChn == 0) & (lMomentum==1)){
+				if ((iChn != 0) || (l_momentum==1)){ /* If on ground and/or has momentum, the player moves fast.*/
+					x = x - 2;
+					l_momentum=1;
+				}
+			}else{ /* If player is in Walk or in slow movement in Freefall. */
+				if (iChn!=0){
+					if ((sprite_cycle%3)==0){ /* Every three sprite cycles, the sprite alternates. */
+						font_set_colordata(4, 16, bmp_Grapple_Boy4colorL);
+					}
+					else{
+						font_set_colordata(4, 16, bmp_Grapple_Boy4colorWalkL);
+					}
+				}
+				if ((iChn == 0) & (l_momentum==1)){ /* If player is in air and has momentum, they maintain high speed */
 					x = x - 2;
 				}
 			}
 		}
+
+		/* Right Movement */
 		if (key_data & KEY_RIGHT1){
-			if ((i%10)==0){
-				font_set_colordata(4, 16, bmp_Grapple_Boy4color);
-			}else{
-				font_set_colordata(4, 16, bmp_Grapple_Boy4colorWalk);
-			}
+			direction = 1; /* Refers to player facing Right. */
 			x++;
-			if (key_data & KEY_B){
-				lMomentum=0;
-				if ((iChn != 0) || (rMomentum==1)){
-					x = x + 2;
-					rMomentum=1;
+			if (key_data & KEY_B){ /* If player is in Run on ground or in fast movement in Freefall. */
+				l_momentum=0;
+				if (iChn!=0){
+					if ((sprite_cycle%2)==0){ /* Every two sprite cycles, the sprite alternates. */
+						font_set_colordata(4, 16, bmp_Grapple_Boy4color);
+					}
+					else{
+						font_set_colordata(4, 16, bmp_Grapple_Boy4colorWalk);
+					}
 				}
-			}else{
-				if ((iChn == 0) & (rMomentum==1)){
+				if ((iChn != 0) || (r_momentum==1)){ /* If on ground and/or has momentum, the player moves fast.*/
+					x = x + 2;
+					r_momentum=1;
+				}
+			}else{ /* If player is in Walk or in slow movement in Freefall. */
+				if (iChn!=0){
+					if ((sprite_cycle%3)==0){ /* Every three sprite cycles, the sprite alternates. */
+						font_set_colordata(4, 16, bmp_Grapple_Boy4color);
+					}
+					else{
+						font_set_colordata(4, 16, bmp_Grapple_Boy4colorWalk);
+					}
+				}
+				if ((iChn == 0) & (r_momentum==1)){ /* If player is in air and has momentum, they maintain high speed */
 					x = x + 2;
 				}
 			}
 		}
 		/* High-Frequency Sword attacks */
 		if (key_data & KEY_B){
-			if ((lunge == 1) & (yPress == 1)) { 
+			if ((lunge == 1) & (y_press == 1) & (lunge_lag == 0)) { 
 				lunge=0;
-				if (key_data & KEY_Y1) {
-					y = y - 27;
+				lunge_lag=50;
+				if (key_data & KEY_Y1){ /* If player presses Y1 (Up), they lunge in said direction. */
+					y = y - 32;
 				}
-				else if (key_data & KEY_Y2) {
-					font_set_colordata(4, 16, bmp_Grapple_Boy4colorWalk);
-					x = x + 25;
-					if (iChn==0) {
+				else if (key_data & KEY_Y2){ /* If player presses Y2 (Right), they lunge in said direction. */
+					direction = 1;
+					x = x + 30;
+					if (iChn==0){ /* If player is in Freefall, they resist gravity enough to move laterally straight */
 						y = y - 2;
 					}
+					font_set_colordata(4, 16, bmp_Grapple_Boy4color);
 				}
-				else if (key_data & KEY_Y3) {
-					y = y + 27;
+				else if (key_data & KEY_Y3){ /* If player presses Y3 (Down), they lunge in said direction. */
+					y = y + 30;
 				}
-				else if (key_data & KEY_Y4) {
-					font_set_colordata(4, 16, bmp_Grapple_Boy4colorWalkL);
-					x = x - 25;
-					if (iChn==0) {
+				else if (key_data & KEY_Y4){ /* If player presses Y4 (Left), they lunge in said direction. */
+					direction = 0;
+					x = x - 30;
+					if (iChn==0){ /* If player is in Freefall, they resist gravity enough to move laterally straight */
 						y = y - 2;
 					}
+					font_set_colordata(4, 16, bmp_Grapple_Boy4colorL);
 				}
+			} /*
+		    else if (slash_anim < 4){
+				slash_anim++;
+				font_set_colordata(6, 72, bmp_LanceGuardF1_3);
+			}
+			else if (slash_anim < 8){
+				slash_anim++;
+				font_set_colordata(6, 72, bmp_LanceGuardF1_3);
+			}
+			else if (slash_anim < 12){
+				slash_anim++;
+				font_set_colordata(6, 72, bmp_LanceGuardF1_3);
+			}
+			else if (slash_anim < 16){
+				slash_anim++;
+				font_set_colordata(6, 72, bmp_LanceGuardF1_3);
+			}
+			else {
+				slash_anim = 0;
+				font_set_colordata(4, 16, bmp_Grapple_Boy4colorWalk);
+			} */
+		}
+
+		/* Charging Lance attacks */
+		/* 
+		if (key_data & KEY_B){
+			if (key_data & KEY_Y1){
+
+			}
+			else if (key_data & KEY_Y2){
+
+			}
+			else if (key_data & KEY_Y3){
+
+			}
+			else if (key_data & KEY_Y4){
+
 			}
 		}
-		yPress=0;
+		
+		
+		*/
+
+		y_press = 0; /* Resets the check for a Y button press. */
 		x2 = x + 8;
 		y2 = y + 8;
+		x3 = x + 16;
+		y3 = y + 16;
 		sprite_set_location(0, x, y);
 		sprite_set_location(1, x2, y);
 		sprite_set_location(2, x, y2);
-		sprite_set_location(3, x2, y2);
-	} while((key_data & KEY_START) == 0);
+		sprite_set_location(3, x2, y2); /*
+		sprite_set_location(4, x3, y);
+		sprite_set_location(6, x3, y2); */
+		if (key_data & KEY_START) {
+	    	loop = pause();
+			if (loop == 0) {
+        		break;  /* exit the loop if loop is 0 */
+   		 	}
+	    	display_control(DCM_SCR1 | DCM_SPR);
+		}
+	} while(loop);
 	return;
 }
