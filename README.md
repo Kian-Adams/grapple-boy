@@ -1,2 +1,10 @@
-# grapple-boy
-_Grapple Boy_ is a platforming action title being developed for the Bandai WonderSwan as a part of the Senior Capstone Project course at the Marine Academy of Technology and Environmental Science. The game is built using the _C_ programming language with the ability to port the game to the system using the WonderWitch Developer Kit released by Bandai. The game follows the titular protagonist using his grappling hook to swing around and traverse levels.
+# Grapple Boy
+
+# About the Project
+Our project aims to create an action-platformer title for the Bandai WonderSwan called _Grapple Boy_. In this game, you play as a character with a grappling hook and movement abilities and aim to utilize the abilities to find the quickest methods to beat levels. This game will be programmed in C with the assistance of the WonderWitch development kit which was specifically designed to develop for the WonderSwan system. Once development is complete, the WonderWitch’s TransMagic software will allow us to put the game on a physical cartridge to be played on an actual WonderSwan system.
+
+# Built Using
+- WonderWitch Development Kit
+- C Programming Language
+
+# How To Try It
