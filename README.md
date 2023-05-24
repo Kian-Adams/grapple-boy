@@ -8,3 +8,17 @@ Our project aims to create an action-platformer title for the Bandai WonderSwan 
 - C Programming Language
 
 ## How To Try It
+
+## Controls
+On the Oswan emulator, different keys are used in substitution to the buttons on the actual WonderSwan system. Below will be a list of the controls of the game in context of using the Oswan emulator to play.
+
+- C-Key: Jump. A basic platforming jump is performed upon pressing the C-Key.
+- X-Key: Ability. One of the selected abilities is utilized. Further details on each of the gears will be provided later.
+- Arrow Keys: Movement. Pressing the arrow keys allows for the player to move.
+- W-Key:
+- A-Key: Sprint. Hold down while walking to enter a running animation.
+- S-Key:
+- D-Key: Lunge. Perform a swift lunge forward to cover a vertical distance quickly either on the ground or in the air.
+
+## Acknowledgements
+  We would like to extend our gratitude to Dr. Michael Bixler of the Marine Academy of Technology and Environmental Science for the opportunity to create this passion project under the his supervision in the Computer Science Capstone Project class. Without the guidance he provided, this project would never have been able to become a reality the way it did.
