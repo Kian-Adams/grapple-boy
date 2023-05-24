@@ -15,9 +15,9 @@ On the Oswan emulator, different keys are used in substitution to the buttons on
 - C-Key: Jump. A basic platforming jump is performed upon pressing the C-Key.
 - X-Key: Ability. One of the selected abilities is utilized. Further details on each of the gears will be provided later.
 - Arrow Keys: Movement. Pressing the arrow keys allows for the player to move.
-- W-Key:
+- W-Key: Hover. Fall slower through the air with increased horizontal mobility.
 - A-Key: Sprint. Hold down while walking to enter a running animation.
-- S-Key:
+- S-Key: Time Slow. Time is slowed down allowing the player make more precise movements.
 - D-Key: Lunge. Perform a swift lunge forward to cover a vertical distance quickly either on the ground or in the air.
 
 ## Acknowledgements
