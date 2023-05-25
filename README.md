@@ -6,6 +6,9 @@ Our project aims to create an action-platformer title for the Bandai WonderSwan 
 ## Built Using
 - WonderWitch Development Kit
 - C Programming Language
+- Visual Studio Code
+- Oswan
+- Microsoft Paint
 
 ## How To Try It
 
