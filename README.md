@@ -9,6 +9,7 @@ Our project aims to create an action-platformer title for the Bandai WonderSwan 
 - Visual Studio Code
 - Oswan
 - Microsoft Paint
+- Reference Code From: http://wwgp.qute.co.jp/2001/allworks/htm
 
 ## How To Try It
 
