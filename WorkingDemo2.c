@@ -19,6 +19,7 @@ int fncLoop(int iArg ,int iPitch)
 
     return(iArg);
 }
+
 void init_sprite()
 {
     if (wwc_get_hardarch() == HARDARCH_WSC) {
@@ -81,6 +82,29 @@ void groundinit(){
 	subPlatformSet(SCREEN1 ,0 ,7,14, 12                  ,0,2);
     subTextureSet(SCREEN2 ,0 ,7,14, 12                  ,0,2);
 }
+void mapload(){
+    iCnt=fncLoop(iCnt+1,10); 
+    if(iCnt==0)
+    {
+        iS2x=fncLoop(iS2x + 1 ,SCREEN_PIXEL_WIDTH);
+
+            for(z=0 ;z<MEN_H ;z++) {
+
+                ch = cMap[iMap][(MEN_H-1)-z];  
+				
+                if(ch != '2') {
+                    /*subBone(pEi ,224 ,((MEN_H-1)-z)*8 ,ch); */
+                    screen_fill_char(SCREEN2 ,iSfx ,z ,1, 1 ,2);
+                }else{
+				screen_fill_char(SCREEN1 ,iSfx ,z ,1, 1 ,2);
+            }
+            }
+            iSfx=fncLoop(iSfx + 1 ,SCREEN_CHAR_WIDTH);
+            iMap=fncLoop(iMap+1,MEN_W); 
+
+            iS1x=fncLoop(iS1x + 1 ,SCREEN_PIXEL_WIDTH);
+        }
+}
 /*--------------------------------画面スクロール*/
 void main(int argc, char *argv[]) {
 	static int iS2x=0;        /*スクリーン2スクロール座標*/
@@ -88,7 +112,7 @@ void main(int argc, char *argv[]) {
     static int iSfx=(224/8);     /*スクリーン描画位置*/
     static int iMap=0;        /*仮想マップ参照位置*/
     static int iCnt=0;
-	int i, j, k, z, iJmp, iChn, iChn1, iChn2;
+	int i, j, k, z, iJmp, iChn, iChn1, iChn2, iChn3;
 	char ch;
 	BYTE x, y;
 	WORD key_data;
@@ -140,6 +164,7 @@ void main(int argc, char *argv[]) {
 	iJmp=0;	
 	iChn=0;
     iChn1=0;
+	iChn2=0;
 	i=0;
 	j=0;
 	k=0;
@@ -154,8 +179,10 @@ void main(int argc, char *argv[]) {
 		key_data = key_press_check();
 		if(iJmp==JMP_ED)
 		{	
-			iChn=screen_get_char1(SCREEN1 , x2/8 , (y+16)/8) & CFM_FONT;
-            iChn1=screen_get_char1(SCREEN1 , x/8 , (y+16)/8) & CFM_FONT;
+			iChn=screen_get_char1(SCREEN1 , x2/8, (y+16)/8) & CFM_FONT;
+			iChn3=screen_get_char1(SCREEN1 , (x2-8)/8, (y+15)/8) & CFM_FONT;
+            iChn1=screen_get_char1(SCREEN1 , x/8, (y+16)/8) & CFM_FONT;
+            iChn2=screen_get_char1(SCREEN1 , (x+16)/8, (y+15)/8) & CFM_FONT;
 			if((iChn==0)&&(iChn1==0)&(k==0))
 			{
 				y=y+2;
@@ -183,7 +210,6 @@ void main(int argc, char *argv[]) {
 			y=y-2;
 			}  
 		}
-		iChn2=0;
 		/*screen_get_char1(SCREEN1 , (x+16)/8 , (x+16)/8) & CFM_FONT;*/
 		if (key_data & KEY_LEFT1){
 			if ((i%10)==0){
@@ -191,7 +217,7 @@ void main(int argc, char *argv[]) {
 			}else{
 				font_set_colordata(4, 16, bmp_Grapple_Boy4colorWalkL);
 			}
-			if(iChn2==0){
+			if((iChn3==0)){
 				if (key_data & KEY_B){
 					x = x - 3;
 				}else{
@@ -205,7 +231,7 @@ void main(int argc, char *argv[]) {
 			}else{
 				font_set_colordata(4, 16, bmp_Grapple_Boy4colorWalk);
 			}
-			if(iChn2==0){
+			if((iChn2==0)){
 				if (key_data & KEY_B){
 					x = x + 3;
 				}else{
@@ -223,27 +249,7 @@ void main(int argc, char *argv[]) {
 		sprite_set_location(2, x, y2);
 		sprite_set_location(3, x2, y2);
 		/* WHEN IT IS TIME FOR THE LUNGE ATTACKS, USE X2, X3, ETC. ADD IN THE NEW SPRITE SET LOCATIONS IN AN IF LOOP.*/
-    iCnt=fncLoop(iCnt-1,10);
-    if(iCnt==0)
-    {
-        iS2x=fncLoop(iS2x + 1 ,SCREEN_PIXEL_WIDTH);
-
-            for(z=0 ;z<MEN_H ;z++) {
-
-                ch = cMap[iMap][(MEN_H-1)-z];  
-				
-                if(ch != '2') {
-                    /*subBone(pEi ,224 ,((MEN_H-1)-z)*8 ,ch); */
-                    screen_fill_char(SCREEN2 ,iSfx ,z ,1, 1 ,ch);
-                }else{
-				screen_fill_char(SCREEN1 ,iSfx ,z ,1, 1 ,ch);
-            }
-            }
-            iSfx=fncLoop(iSfx + 1 ,SCREEN_CHAR_WIDTH);
-            iMap=fncLoop(iMap+1,MEN_W); 
-
-            iS1x=fncLoop(iS1x + 1 ,SCREEN_PIXEL_WIDTH);
-        }
+		void mapload();
 	} while((key_data & KEY_START) == 0);
 	return;
 }
