@@ -7,8 +7,15 @@
 #include "Grapple_Boy4color-Walk.h"
 #include "Grapple_Boy4color-L.h"
 #include "Grapple_Boy4color-WalkL.h"
+#include "GBuplunge.h"
+#include "GBrightlunge.h"
+#include "GBdownlunge.h"
+#include "GBleftlunge.h"
+#include "GBslash1.h"
+#include "GBslash2.h"
+#include "GBslash3.h"
 #define JMP_ED 0
-#define ANITIME    10 
+#define FONT_FREE 8
 int fncLoop(int iArg ,int iPitch)
 {
     if(iArg < 0)
@@ -53,48 +60,17 @@ void clear_screen(BYTE screen, BOOL stripe)
     }
 }
 /*All 3 functions below make a basic platform, not used in this version of the build.*/
-void subPlatformSet(int iScr ,int iX ,int iY ,int iWmax ,int iHmax ,int iPal,int iChn)
-{
-    int iW,iH;
-
-    for(iH=0 ;iH<iHmax ;iH++)
-    {
-        for(iW=0 ;iW<iWmax ;iW++)
-        {
-             screen_fill_char(iScr ,iX+iW ,iY+iH, 1, 1 ,iChn | (iPal << CFSFT_PALETTE));
-        }
-    }
-}
-void subTextureSet(int iScr ,int iX ,int iY ,int iWmax ,int iHmax ,int iPal,int iChn)
-{
-    int iW,iH;
-
-    for(iH=0 ;iH<iHmax ;iH++)
-    {
-        for(iW=0 ;iW<iWmax ;iW++)
-        {
-             screen_fill_char(iScr ,iX+iW ,iY+iH, 1, 1 ,(iPal << CFSFT_PALETTE));
-        }
-    }
-}
-void groundinit(){
-    subPlatformSet(SCREEN1 ,0 ,7,27, 12                  ,0,2);
-    subTextureSet(SCREEN2 ,0 ,7,27, 12                  ,0,2);
-	subPlatformSet(SCREEN1 ,0 ,7,14, 12                  ,0,2);
-    subTextureSet(SCREEN2 ,0 ,7,14, 12                  ,0,2);
-}
 void mapload(int iX ,int iY ,char *pStr){
 /*Map loading attempt, use commented out version below for current map loading version*/
-    for(;;)
+    while(iX <= 27)
     {
         if( *pStr ==NULL)
             break;
 
-        if( *pStr ==' ')
+        if( *pStr =='0')
         {
-            screen_fill_char(SCREEN2, iX, iY, 1, 1 ,CFM_BGR | CHN_TOMEBOX); 
         }else{
-            screen_fill_char(SCREEN1, iX, iY, 1, 1 ,CFM_MOJI | ((*pStr-'1')+CHN_KUROBOX1)); 
+            screen_fill_char(SCREEN1, iX, iY, 1, 1,2); 
         }
         iX++;
         pStr++;
@@ -133,8 +109,46 @@ void mapload(int iX ,int iY ,char *pStr){
         }*/
 }
 /*Main*/
+void draw_string(BYTE screen, BYTE x, BYTE y, WORD font, unsigned char *s)
+{
+    BYTE data[8];
+    WORD code;
+
+    while ((code = *s++) != 0x00) {
+	text_get_fontdata(code, data);
+	font_set_monodata(font, 1, data);
+	screen_set_char(screen, x++, y, 1, 1, &font);
+	font++;
+    }
+}
+void gameover(){
+    clear_screen(SCREEN2, FALSE);
+    draw_string(SCREEN2, 11, 7, FONT_FREE, "Game Over");
+    display_control(DCM_SCR1 | DCM_SCR2 | DCM_SCR2_WIN_INSIDE | DCM_SPR);
+}
+void healthbar(int health){
+	wwc_palette_set_color(24, 1, 0x0666);
+	font_set_colordata(24, 1, bmp_heart);
+	if (health >= 0){
+		screen_fill_char(SCREEN1, 1, 0, 1, 1, 24);
+    }else{
+		screen_fill_char(SCREEN1, 1, 0, 1, 1, 0);
+	}if (health >= 2){
+		screen_fill_char(SCREEN1, 2, 0, 1, 1, 24);
+	}else{
+		screen_fill_char(SCREEN1, 2, 0, 1, 1, 0);
+	}if (health >= 4){
+		screen_fill_char(SCREEN1, 3, 0, 1, 1, 24);
+	}else{
+		screen_fill_char(SCREEN1, 3, 0, 1, 1, 0);
+	}if (health >= 6){
+		screen_fill_char(SCREEN1, 4, 0, 1, 1, 24);
+	}else{
+		screen_fill_char(SCREEN1, 4, 0, 1, 1, 0);
+	}
+}
 void main(int argc, char *argv[]) {
-	int i, j, k, iJmp, iChn, iChn1, iChn2, iChn3;
+	int i, j, k, iJmp, iChn, iChn1, iChn2, iChn3, screenscrolling, level, Phealth;
 	BYTE x, y;
 	WORD key_data;
 	init_sprite();
@@ -147,7 +161,6 @@ void main(int argc, char *argv[]) {
 	palette_set_color(13, 0x7520);
 
 	/* screen setting */
-	groundinit();
 	clear_screen(SCREEN1, TRUE);
 	font_set_colordata(0, Ground_width * Ground_height, bmp_clear);
 	font_set_colordata(2, Ground_width * Ground_height, bmp_Ground);
@@ -182,6 +195,7 @@ void main(int argc, char *argv[]) {
 
 	x = 0;
 	y = 0;
+	screenscrolling=0;
 	iJmp=0;	
 	iChn=0;
     iChn1=0;
@@ -189,10 +203,11 @@ void main(int argc, char *argv[]) {
 	i=0;
 	j=0;
 	k=0;
+	level=1;
 	do {
 		BYTE x2, y2;
 
-		sys_wait(1);
+		sys_wait(0);
 		i++;
 		if (i == 3){
 			i = 0;
@@ -209,10 +224,10 @@ void main(int argc, char *argv[]) {
 				y=y+2;
 			}else{
 			    if (key_data & KEY_A){
-					if (k<8){
+					if (k<16){
 						j=6;
 						j = (j/2);
-						k++;
+						k = k+2;
 						iJmp = j;
 					}else{
 						k=0;
@@ -237,11 +252,11 @@ void main(int argc, char *argv[]) {
 			}else{
 				font_set_colordata(4, 16, bmp_Grapple_Boy4colorWalkL);
 			}
-			if((iChn3==0)){
+			if((iChn3==0)&&(x>0)){
 				if (key_data & KEY_B){
-					x = x - 3;
+					x = x - 5;
 				}else{
-				x--;
+				x=x-2;
 			}
 			}
 		}
@@ -253,9 +268,9 @@ void main(int argc, char *argv[]) {
 			}
 			if((iChn2==0)){
 				if (key_data & KEY_B){
-					x = x + 3;
+					x = x + 5;
 				}else{
-				x++;
+				x=x+2;
 			}
 			}
 		}
@@ -269,11 +284,87 @@ void main(int argc, char *argv[]) {
 		sprite_set_location(2, x, y2);
 		sprite_set_location(3, x2, y2);
 		/*Looping character around to start of the screen for possibility of Mega Man Style map switching.*/
-		if (x > 220){
+		if (x > 219){
 			x=0;
+			screenscrolling++;
+			clear_screen(SCREEN1, TRUE);
 		}
 		/*Calling Map Loading Function*/
-		mapload();
+		if (level == 1){
+		if (screenscrolling == 0){
+		mapload(0, 0, "00000000000000000000000000000000");
+		mapload(0, 1, "00000000000000000000000000000000");
+		mapload(0, 2, "00000000000000000000000000000000");
+		mapload(0, 3, "00000000000000000000000000000000");
+		mapload(0, 4, "00000000000000000000000000000000");
+		mapload(0, 5, "00000000000000000000000000000000");
+		mapload(0, 6, "00000000000000000000000000000000");
+		mapload(0, 7, "00000000000000000000000000000000");
+		mapload(0, 8, "00000000000000000000000000000000");
+		mapload(0, 9, "00000000000000000000000000000000");
+		mapload(0, 10, "22222222222222222222222222222222");
+		mapload(0, 11, "22222222222222222222222222222222");
+		mapload(0, 12, "22222222222222222222222222222222");
+		mapload(0, 13, "22222222222222222222222222222222");
+		mapload(0, 14, "22222222222222222222222222222222");
+		mapload(0, 15, "22222222222222222222222222222222");
+		mapload(0, 16, "22222222222222222222222222222222");
+		mapload(0, 17, "22222222222222222222222222222222");
+		}else if (screenscrolling == 1){
+		mapload(0, 0, "00000000000000000000000000000000");
+		mapload(0, 1, "00000000000000000000000000000000");
+		mapload(0, 2, "00000000000000000000000000000000");
+		mapload(0, 3, "00000000000000000000000000000000");
+		mapload(0, 4, "00000000000000000000000000000000");
+		mapload(0, 5, "00000000000000000000000000000000");
+		mapload(0, 6, "00000000000000000000000000000000");
+		mapload(0, 7, "00000000000000000000000000000000");
+		mapload(0, 8, "00000000000000000000000000000000");
+		mapload(0, 9, "00000000000000000000000000000000");
+		mapload(0, 10, "00000000000000000000000000000000");
+		mapload(0, 11, "00000000000000000000000000000000");
+		mapload(0, 12, "22222222222222222222222222222222");
+		mapload(0, 13, "22222222222222222222222222222222");
+		mapload(0, 14, "22222222222222222222222222222222");
+		mapload(0, 15, "22222222222222222222222222222222");
+		mapload(0, 16, "22222222222222222222222222222222");
+		mapload(0, 17, "22222222222222222222222222222222");
+		}else if (screenscrolling == 2){
+		mapload(0, 0, "00000000000000000000000000000000");
+		mapload(0, 1, "00000000000000000000000000000000");
+		mapload(0, 2, "00000000000000000000000000000000");
+		mapload(0, 3, "00000000000000000000000000000000");
+		mapload(0, 4, "00000000000000000000000000000000");
+		mapload(0, 5, "00000000000000000000000000000000");
+		mapload(0, 6, "00000000000000000000000000000000");
+		mapload(0, 7, "00000000000000000000000000000000");
+		mapload(0, 8, "00000000000000000000000000000000");
+		mapload(0, 9, "00000000000000000000000000000000");
+		mapload(0, 10, "00000000000000000000000000000000");
+		mapload(0, 11, "00000000000000000000000000000000");
+		mapload(0, 12, "22222222222200000002222222222222");
+		mapload(0, 13, "22222222222200000002222222222222");
+		mapload(0, 14, "22222222222200000002222222222222");
+		mapload(0, 15, "22222222222200000002222222222222");
+		mapload(0, 16, "22222222222200000002222222222222");
+		mapload(0, 17, "22222222222200000002222222222222");
+		}
+		}else if(level == 2){
+
+		}else if (level == 3){
+
+		}
+		if (y > 200){
+			Phealth = 0;
+		}
+		if (Phealth == 0){
+			gameover();
+			sys_wait(100);
+			key_data = 'end';
+			break;
+		}else{
+			healthbar(Phealth);
+		}
 	} while((key_data & KEY_START) == 0);
 	return;
 }
