@@ -52,6 +52,7 @@ void clear_screen(BYTE screen, BOOL stripe)
 	    0 + (stripe ? (1 - i << CFSFT_PALETTE) : 0));
     }
 }
+/*All 3 functions below make a basic platform, not used in this version of the build.*/
 void subPlatformSet(int iScr ,int iX ,int iY ,int iWmax ,int iHmax ,int iPal,int iChn)
 {
     int iW,iH;
@@ -82,38 +83,58 @@ void groundinit(){
 	subPlatformSet(SCREEN1 ,0 ,7,14, 12                  ,0,2);
     subTextureSet(SCREEN2 ,0 ,7,14, 12                  ,0,2);
 }
-void mapload(){
-    iCnt=fncLoop(iCnt+1,10); 
+void mapload(int iX ,int iY ,char *pStr){
+/*Map loading attempt, use commented out version below for current map loading version*/
+    for(;;)
+    {
+        if( *pStr ==NULL)
+            break;
+
+        if( *pStr ==' ')
+        {
+            screen_fill_char(SCREEN2, iX, iY, 1, 1 ,CFM_BGR | CHN_TOMEBOX); 
+        }else{
+            screen_fill_char(SCREEN1, iX, iY, 1, 1 ,CFM_MOJI | ((*pStr-'1')+CHN_KUROBOX1)); 
+        }
+        iX++;
+        pStr++;
+    }
+	/*
+	static int iS2x=0;     
+    static int iS1x=0;       
+    static int iSfx=(224/8);    
+    static int iMap=0;      
+    static int iCnt=0;
+	int z = 0;
+	char ch;
+    iCnt=fncLoop(iCnt,10); 
     if(iCnt==0)
     {
-        iS2x=fncLoop(iS2x + 1 ,SCREEN_PIXEL_WIDTH);
-
-            for(z=0 ;z<MEN_H ;z++) {
+        iS2x=fncLoop(iS2x,SCREEN_PIXEL_WIDTH);
+            if(z<MEN_H){
 
                 ch = cMap[iMap][(MEN_H-1)-z];  
 				
                 if(ch != '2') {
-                    /*subBone(pEi ,224 ,((MEN_H-1)-z)*8 ,ch); */
+                    /*subBone(pEi ,224 ,((MEN_H-1)-z)*8 ,ch); 
                     screen_fill_char(SCREEN2 ,iSfx ,z ,1, 1 ,2);
                 }else{
 				screen_fill_char(SCREEN1 ,iSfx ,z ,1, 1 ,2);
+				z++;
             }
             }
-            iSfx=fncLoop(iSfx + 1 ,SCREEN_CHAR_WIDTH);
+			if ((z==MEN_H)&(iSfx<=MEN_W)){
+				z=0;
+				iSfx++;
+			}
             iMap=fncLoop(iMap+1,MEN_W); 
 
-            iS1x=fncLoop(iS1x + 1 ,SCREEN_PIXEL_WIDTH);
-        }
+            iS1x=0;
+        }*/
 }
-/*--------------------------------画面スクロール*/
+/*Main*/
 void main(int argc, char *argv[]) {
-	static int iS2x=0;        /*スクリーン2スクロール座標*/
-    static int iS1x=0;        /*スクリーン1スクロール座標*/
-    static int iSfx=(224/8);     /*スクリーン描画位置*/
-    static int iMap=0;        /*仮想マップ参照位置*/
-    static int iCnt=0;
-	int i, j, k, z, iJmp, iChn, iChn1, iChn2, iChn3;
-	char ch;
+	int i, j, k, iJmp, iChn, iChn1, iChn2, iChn3;
 	BYTE x, y;
 	WORD key_data;
 	init_sprite();
@@ -178,10 +199,10 @@ void main(int argc, char *argv[]) {
 		}
 		key_data = key_press_check();
 		if(iJmp==JMP_ED)
-		{	
-			iChn=screen_get_char1(SCREEN1 , x2/8, (y+16)/8) & CFM_FONT;
+		{	/*All 4 collision areas, iChn2 and 3 are used for side to side collision.*/
+			iChn=screen_get_char1(SCREEN1 , (x2/8)+1, (y+16)/8) & CFM_FONT;
 			iChn3=screen_get_char1(SCREEN1 , (x2-8)/8, (y+15)/8) & CFM_FONT;
-            iChn1=screen_get_char1(SCREEN1 , x/8, (y+16)/8) & CFM_FONT;
+            iChn1=screen_get_char1(SCREEN1 , (x)/8, (y+16)/8) & CFM_FONT;
             iChn2=screen_get_char1(SCREEN1 , (x+16)/8, (y+15)/8) & CFM_FONT;
 			if((iChn==0)&&(iChn1==0)&(k==0))
 			{
@@ -210,7 +231,6 @@ void main(int argc, char *argv[]) {
 			y=y-2;
 			}  
 		}
-		/*screen_get_char1(SCREEN1 , (x+16)/8 , (x+16)/8) & CFM_FONT;*/
 		if (key_data & KEY_LEFT1){
 			if ((i%10)==0){
 				font_set_colordata(4, 16, bmp_Grapple_Boy4colorL);
@@ -239,7 +259,7 @@ void main(int argc, char *argv[]) {
 			}
 			}
 		}
-		if (key_data & KEY_RIGHT2){
+		if (key_data & KEY_DOWN2){
 			y = y + 8;
 		}
 		x2 = x + 8;
@@ -248,8 +268,12 @@ void main(int argc, char *argv[]) {
 		sprite_set_location(1, x2, y);
 		sprite_set_location(2, x, y2);
 		sprite_set_location(3, x2, y2);
-		/* WHEN IT IS TIME FOR THE LUNGE ATTACKS, USE X2, X3, ETC. ADD IN THE NEW SPRITE SET LOCATIONS IN AN IF LOOP.*/
-		void mapload();
+		/*Looping character around to start of the screen for possibility of Mega Man Style map switching.*/
+		if (x > 220){
+			x=0;
+		}
+		/*Calling Map Loading Function*/
+		mapload();
 	} while((key_data & KEY_START) == 0);
 	return;
 }
